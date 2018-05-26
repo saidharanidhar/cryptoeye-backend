@@ -15,10 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import healthcheck, hot_load, monitor_currency
+from .views import healthcheck, hot_load, factory_load
 
 urlpatterns = [
     path('healthcheck/', healthcheck, name='health'),
     path('hotload/', hot_load, name='hotload'),
-    path('factory/', monitor_currency, name='monitor'),
+    path('factory/', factory_load, name='monitor'),
 ]
