@@ -25,7 +25,7 @@ SECRET_KEY = 'a)7v$gygs#6y42g^cfvj3aq$yjwzv)ma5km!t_ov&414gk7u1a'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['cryptoeye.herokuapp.com']
 
 
 # Application definition
