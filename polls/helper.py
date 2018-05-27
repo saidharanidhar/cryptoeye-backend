@@ -2,12 +2,15 @@ import random
 import requests
 import time
 import os
+import logging
 from slackclient import SlackClient
 from multiprocessing import Process
 from django.db.utils import OperationalError
 from pytz import timezone
 
 from .models import Currency, NotifyJob
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -62,8 +65,9 @@ def get_time(updated):
 
 def send_slack_notification(job, msg):
     sc = SlackClient(job.user.token)
-    sc.api_call("chat.postMessage", channel=job.user.channel, text=msg, as_user=False, username=USERNAME,
+    response = sc.api_call("chat.postMessage", channel=job.user.channel, text=msg, as_user=False, username=USERNAME,
                 icon_emoji=ICON)
+    logger.info(response)
     del sc
 
 
@@ -79,6 +83,7 @@ def make_message(key, value, low, high, updated):
             time.sleep(random.randint(1, 5))
     for job in jobs:
         Process(target=send_slack_notification, args=(job, msg)).start()
+        logger.info('jobs started')
         # send_slack_notification(job, msg)
 
 
