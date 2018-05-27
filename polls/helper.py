@@ -6,6 +6,7 @@ import logging
 from slackclient import SlackClient
 from multiprocessing import Process
 from django.db.utils import OperationalError
+from django.db import transaction as db_transaction
 from pytz import timezone
 
 from .models import Currency, NotifyJob
@@ -33,15 +34,19 @@ def calculate(value):
 def update_currency(key, value):
     high, low = calculate(value)
     values = dict(value=value, high=high, low=low)
-    while True:
-        try:
-            Currency.objects.update_or_create(coin=key, defaults=values)
-            break
-        except OperationalError as err:
-            time.sleep(random.randint(1, 5))
-        except Exception:
-            time.sleep(random.randint(1, 5))
-            break
+    with db_transaction.atomic():
+        Currency.objects.select_for_update().update_or_create(coin=key, defaults=values)
+    # while True:
+    #     try:
+    #         Currency.objects.update_or_create(coin=key, defaults=values)
+    #         break
+    #     except OperationalError as err:
+    #         print(key, err)
+    #         time.sleep(random.randint(1, 5))
+    #     except Exception as err:
+    #         print(key, err)
+    #         time.sleep(random.randint(1, 5))
+    #         break
     return
 
 
@@ -49,7 +54,8 @@ def load_currency():
     data = get_data()
     for key in data.get('prices', {}).get('inr').keys():
         value = float(data['prices']['inr'][key])
-        Process(target=update_currency, args=(key, value)).start()
+        # Process(target=update_currency, args=(key, value)).start()
+        update_currency(key, value)
 
 
 def get_emoji(value, low, high):
@@ -67,23 +73,28 @@ def send_slack_notification(job, msg):
     sc = SlackClient(job.user.token)
     response = sc.api_call("chat.postMessage", channel=job.user.channel, text=msg, as_user=False, username=USERNAME,
                 icon_emoji=ICON)
-    logger.info(response)
+    # logger.info(response)
     del sc
+    del response
 
 
 def make_message(key, value, low, high, updated):
     emoji = get_emoji(value, low, high)
     local_time = get_time(updated)
     msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* Last Updated *{4}*".format(key, value, emoji, change, local_time)
-    while True:
-        try:
-            jobs = NotifyJob.objects.filter(coin=key)
-            break
-        except Exception:
-            time.sleep(random.randint(1, 5))
+    with db_transaction.atomic():
+        jobs = NotifyJob.objects.select_for_update().select_related().filter(coin=key)
+    # while True:
+    #     try:
+    #         jobs = NotifyJob.objects.select_related('coin__coin','user__token','user__channel').filter(coin=key)
+    #         break
+    #     except Exception as err:
+    #         print('mm', err)
+    #         time.sleep(random.randint(1, 5))
     for job in jobs:
         Process(target=send_slack_notification, args=(job, msg)).start()
-        logger.info('jobs started')
+        # send_slack_notification(job, msg)
+        # logger.info('jobs started')
         # send_slack_notification(job, msg)
 
 
@@ -91,13 +102,24 @@ def monitor_currency():
     data = get_data()
     for key in data.get('prices', {}).get('inr').keys():
         value = float(data['prices']['inr'][key])
-        while True:
-            try:
-                coin = Currency.objects.get(coin=key)
-                if not coin.low < value < coin.high:
-                    Process(target=make_message, args=(key, value, coin.low, coin.high, coin.updated)).start()
-                    Process(target=update_currency, args=(key, value)).start()
-                break
-            except Currency.DoesNotExist:
-                load_currency()
-                time.sleep(10)
+        with db_transaction.atomic():
+            coin = Currency.objects.select_for_update().get(coin=key)
+        if not coin.low < value < coin.high:
+            # Process(target=make_message, args=(key, value, coin.low, coin.high, coin.updated)).start()
+            make_message(key, value, coin.low, coin.high, coin.updated)
+            # Process(target=update_currency, args=(key, value)).start()
+            update_currency(key, value)
+
+        # while True:
+        #     try:
+        #         coin = Currency.objects.get(coin=key)
+        #         if not coin.low < value < coin.high:
+        #             # Process(target=make_message, args=(key, value, coin.low, coin.high, coin.updated)).start()
+        #             make_message(key, value, coin.low, coin.high, coin.updated)
+        #             # Process(target=update_currency, args=(key, value)).start()
+        #             update_currency(key, value)
+        #         break
+        #     except Currency.DoesNotExist as err:
+        #         print(key, err)
+        #         load_currency()
+        #         time.sleep(10)

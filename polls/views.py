@@ -9,9 +9,11 @@ def healthcheck(request):
 
 def hot_load(request):
     Process(target=monitor_currency).start()
+    # monitor_currency()
     return HttpResponse('Ok', status=200)
 
 
 def factory_load(request):
     Process(target=load_currency).start()
+    # load_currency()
     return HttpResponse('Ok', status=200)
