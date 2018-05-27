@@ -82,8 +82,9 @@ def make_message(key, value, low, high, updated):
     emoji = get_emoji(value, low, high)
     local_time = get_time(updated)
     msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* Last Updated *{4}*".format(key, value, emoji, change, local_time)
-    with db_transaction.atomic():
-        jobs = NotifyJob.objects.select_for_update().select_related().filter(coin=key)
+    jobs = NotifyJob.objects.select_related().filter(coin=key)
+    # with db_transaction.atomic():
+    #     jobs = NotifyJob.objects.select_for_update().select_related().filter(coin=key)
     # while True:
     #     try:
     #         jobs = NotifyJob.objects.select_related('coin__coin','user__token','user__channel').filter(coin=key)
@@ -92,8 +93,8 @@ def make_message(key, value, low, high, updated):
     #         print('mm', err)
     #         time.sleep(random.randint(1, 5))
     for job in jobs:
-        Process(target=send_slack_notification, args=(job, msg)).start()
-        # send_slack_notification(job, msg)
+        # Process(target=send_slack_notification, args=(job, msg)).start()
+        send_slack_notification(job, msg)
         # logger.info('jobs started')
         # send_slack_notification(job, msg)
 
