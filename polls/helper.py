@@ -4,10 +4,13 @@ import requests
 import time
 import os
 import logging
-from slackclient import SlackClient
-from multiprocessing import Process
+
+from django.utils import timezone as dj_timezone
+from django.utils.timesince import timesince
 from django.db.utils import OperationalError
 from django.db import transaction as db_transaction
+from multiprocessing import Process
+from slackclient import SlackClient
 from pytz import timezone
 
 from .models import Currency, NotifyJob
@@ -79,12 +82,13 @@ def send_slack_notification(job, msg):
     del response
 
 
-def make_message(key, value, low, high, previous, updated):
+def make_message(key, value, low, high, previous, updated, present_time):
+    diff = timesince(updated, present_time)
     emoji, percent = get_emoji(value, low, high, previous)
     local_time = get_time(updated)
-    msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* Previously Rs *{4}* Last Updated *{5}*".format(key, value, emoji,
-                                                                                                percent, previous,
-                                                                                                local_time)
+    msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* in *{4}*, Previously Rs *{5}* Last Updated *{6}*".format(
+        key, value, emoji, percent, diff, previous, local_time )
+
     jobs = NotifyJob.objects.select_related().filter(coin=key)
     # with db_transaction.atomic():
     #     jobs = NotifyJob.objects.select_for_update().select_related().filter(coin=key)
@@ -104,13 +108,14 @@ def make_message(key, value, low, high, previous, updated):
 
 def monitor_currency():
     data = get_data()
+    present_time = dj_timezone.now()
     for key in data.get('prices', {}).get('inr').keys():
         value = float(data['prices']['inr'][key])
         with db_transaction.atomic():
             coin = Currency.objects.select_for_update().get(coin=key)
         if not coin.low < value < coin.high:
             # Process(target=make_message, args=(key, value, coin.low, coin.high, coin.updated)).start()
-            make_message(key, value, coin.low, coin.high, coin.value, coin.updated)
+            make_message(key, value, coin.low, coin.high, coin.value, coin.updated, present_time)
             # Process(target=update_currency, args=(key, value)).start()
             update_currency(key, value)
 
