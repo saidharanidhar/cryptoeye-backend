@@ -60,8 +60,8 @@ def load_currency():
 
 def get_emoji(value, low, high):
     if value <= low:
-        return ':small_red_triangle_down:'
-    return ':arrow_up:'
+        return ':small_red_triangle_down:', round(100 - (value*100)/low, 2)
+    return ':arrow_up:', round((value*100)/high - 100, 2)
 
 
 def get_time(updated):
@@ -79,10 +79,10 @@ def send_slack_notification(job, msg):
 
 
 def make_message(key, value, low, high, previous, updated):
-    emoji = get_emoji(value, low, high)
+    emoji, percent = get_emoji(value, low, high)
     local_time = get_time(updated)
     msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* Previously Rs *{4}* Last Updated *{5}*".format(key, value, emoji,
-                                                                                                change, previous,
+                                                                                                percent, previous,
                                                                                                 local_time)
     jobs = NotifyJob.objects.select_related().filter(coin=key)
     # with db_transaction.atomic():
