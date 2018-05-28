@@ -1,3 +1,4 @@
+import decimal
 import random
 import requests
 import time
@@ -60,8 +61,8 @@ def load_currency():
 
 def get_emoji(value, low, high):
     if value <= low:
-        return ':small_red_triangle_down:', round(100 - (value*100)/low, 2)
-    return ':arrow_up:', round((value*100)/high - 100, 2)
+        return ':small_red_triangle_down:', round(100 - ((value*100)/decimal.Decimal(low)), 2)
+    return ':arrow_up:', round(((value*100)/decimal.Decimal(high)) - 100, 2)
 
 
 def get_time(updated):
