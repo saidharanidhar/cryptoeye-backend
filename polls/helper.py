@@ -59,10 +59,10 @@ def load_currency():
         update_currency(key, value)
 
 
-def get_emoji(value, low, high):
+def get_emoji(value, low, high, previous):
     if value <= low:
-        return ':small_red_triangle_down:', round(100 - ((decimal.Decimal(value)*100)/low), 2)
-    return ':arrow_up:', round((decimal.Decimal(value)*100)/high - 100, 2)
+        return ':small_red_triangle_down:', round(100 - ((decimal.Decimal(value)*100)/previous), 2)
+    return ':arrow_up:', round((decimal.Decimal(value)*100)/previous - 100, 2)
 
 
 def get_time(updated):
@@ -80,7 +80,7 @@ def send_slack_notification(job, msg):
 
 
 def make_message(key, value, low, high, previous, updated):
-    emoji, percent = get_emoji(value, low, high)
+    emoji, percent = get_emoji(value, low, high, previous)
     local_time = get_time(updated)
     msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* Previously Rs *{4}* Last Updated *{5}*".format(key, value, emoji,
                                                                                                 percent, previous,
