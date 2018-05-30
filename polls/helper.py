@@ -85,9 +85,9 @@ def send_slack_notification(job, msg):
 def make_message(key, value, low, high, previous, updated, present_time):
     diff = timesince(updated, present_time)
     emoji, percent = get_emoji(value, low, high, previous)
-    local_time = get_time(updated)
-    msg = "*{0}* Treading at Rs *{1}* {2} *{3}%* in *{4}*, Previously Rs *{5}* Last Updated *{6}*".format(
-        key, value, emoji, percent, diff, previous, local_time )
+    # local_time = get_time(updated)
+    msg = "*{0}* Treading at Rs *{1}*, *{2}%* {3} in *{4}*, Previously Rs *{5}*".format(
+        key, value, percent, emoji, diff, previous )
 
     jobs = NotifyJob.objects.select_related().filter(coin=key)
     # with db_transaction.atomic():
