@@ -1,5 +1,8 @@
+from decimal import Decimal
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 from django.db import models
+from datetime import datetime
 
 # Create your models here.
 from django.utils import timezone
@@ -28,6 +31,20 @@ class Currency(models.Model):
 class NotifyJob(models.Model):
     user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
     coin = models.ForeignKey(Currency, db_column='coin', on_delete=models.DO_NOTHING)
+    investment = models.DecimalField(max_length=20, max_digits=13, decimal_places=3, default=0)
+    coins_bought = models.DecimalField(max_length=20, max_digits=13, decimal_places=8, default=0)
+    coin_value = models.DecimalField(max_length=20, max_digits=13, decimal_places=3)
+    on_time = models.DateTimeField(default=datetime.now)
+
+    def save(self, *args, **kwargs):
+        self.investment = abs(self.investment)
+        self.coins_bought = abs(self.coins_bought)
+        self.coin_value = abs(self.coin_value)
+        if not self.coin_value:
+            self.coin_value = Currency.objects.get(coin=self.coin).value
+        if not self.investment:
+            self.investment = self.coins_bought * self.coin_value
+        super(NotifyJob, self).save()
 
     class Meta:
         unique_together = (("user", "coin"),)
