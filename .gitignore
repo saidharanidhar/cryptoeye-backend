@@ -1,0 +1,33 @@
+# Ignore generated directories
+venv
+pyenv
+pyvenv
+/out/
+# Ignore generated files
+db.sqlite3
+*.pyc
+*.pyo
+*.orig
+*~
+.settings/
+.installed.cfg
+*.sw*
+.env
+.env_prod
+# Ignore other specific files
+.coverage
+.project
+.pydevproject
+.pydevproject.bak
+.vagrant
+.jshintrc
+/logs
+templates/build-info.txt
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyCharm Folders
+.idea
